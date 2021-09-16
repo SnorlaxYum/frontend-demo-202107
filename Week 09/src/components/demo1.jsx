@@ -5,7 +5,7 @@ const App = defineComponent({
     const form = {
     }
     // pretty paint it
-    let formDef = ref(JSON.stringify({
+    let formDefObj = ref({
       formAttr: {
         "label-width": "120px"
       },
@@ -239,8 +239,8 @@ const App = defineComponent({
           ]
         },
       ]
-    }, null, 2))
-    return {form, formDef}
+    }), formDef = ref(JSON.stringify(formDefObj.value, null, 2))
+    return {formDef, formDefObj, form}
   },
   methods: {
     elementRender(obj, objIndex) {
@@ -287,23 +287,21 @@ const App = defineComponent({
         attrsCopy.onClick = eval(attrsCopy.onClick)
       }
 
-      // INCOMPLETE-THINGS-HERE: still don't know why the returned element isn't reactive ;(
-      // v-model isn't working here, so I tried onInput, hoping to bring back reactivity too......
-      // this.$set dosn't exist here
+      // INCOMPLETE-THINGS-HERE: cannot catch the onChange events of ElTimePicker and ElDatePicker
       if(name === "ElRadioGroup") {
-        return <el-radio-group {...attrsCopy} v-model={this.form[modelName]} onInput={e => {this.form = {...this.form, [modelName]: e.target.value}; console.log(e)}}>
+        return <el-radio-group {...attrsCopy} v-model={this.form[modelName]} onInput={e => this.valueChange1(e, attrs)}>
           {
             attrs.children.map((options, optionsIndex) => this.elementRender(options, optionsIndex))
           }
         </el-radio-group>
       } else if(name === "ElCheckboxGroup") {
-        return <el-checkbox-group {...attrsCopy} v-model={this.form[modelName]} onInput={e => {this.form = {...this.form, [modelName]: e.target.value}; console.log(e)}}>
+        return <el-checkbox-group {...attrsCopy} v-model={this.form[modelName]} onInput={e => this.valueChangeCheckbox(e, attrs)}>
           {
             attrs.children.map((options, optionsIndex) => this.elementRender(options, optionsIndex))
           }
         </el-checkbox-group>
       } else if(name === "ElSelect") {
-        return <el-select {...attrsCopy} v-model={this.form[modelName]} onChange={e => {this.form = {...this.form, [modelName]: e}; console.log(e)}}>
+        return <el-select {...attrsCopy} v-model={this.form[modelName]} onChange={value => this.valueChange(value, attrs)}>
           {
             attrs.children.map((options, optionsIndex) => this.elementRender(options, optionsIndex))
           }
@@ -329,21 +327,53 @@ const App = defineComponent({
           }
         </el-col>
       } else if(name === "ElInput") {
-        return <el-input {...attrsCopy} v-model={this.form[modelName]} onInput={e => {this.form = {...this.form, [modelName]: e}; console.log(e)}}></el-input>
+        return <el-input {...attrsCopy} v-model={this.form[modelName]} onInput={value => this.valueChange(value, attrs)}></el-input>
       } else if(name === "ElSwitch") {
-        return <el-switch {...attrsCopy} v-model={this.form[modelName]} onInput={e => {this.form = {...this.form, [modelName]: e}; console.log(e)}}></el-switch>
+        return <el-switch {...attrsCopy} v-model={this.form[modelName]} onInput={value => this.valueChange(value, attrs)}></el-switch>
       } else if(name === "TextNode") {
         return attrsCopy.value
       }
     },
+    valueChange(value, attrs) {
+      attrs.value = value
+      this.formDef = JSON.stringify(this.formDefObj, null, 2)
+    },
+    valueChange1(e, attrs) {
+      attrs.value = e.target.value
+      this.formDef = JSON.stringify(this.formDefObj, null, 2)
+    },
+    valueChangeCheckbox(e, attrs) {
+      if(attrs.value) {
+      console.log(attrs.value, e.target.value, e.target.value in attrs.value)
+        const index = attrs.value.findIndex(mem => mem === e.target.value)
+        if(index !== -1) {
+          attrs.value.splice(index, 1) 
+        } else {
+          attrs.value.push(e.target.value)
+        }
+      } else {
+        attrs.value = [e.target.value]
+      }
+      
+      this.formDef = JSON.stringify(this.formDefObj, null, 2)
+    },
     formNow() {
-      const def = JSON.parse(this.formDef)
+      const def = this.formDefObj
       return <el-form {...def.formAttr}>
         {def.formItems.map(item => {
         return <el-form-item {...item.attr}>
           {item.children.map((como, comoIndex) => this.elementRender(como, comoIndex))}
         </el-form-item>})}
       </el-form>
+    },
+    jsonChange(content) {
+      let finalObj
+      try {
+        finalObj = JSON.parse(content)
+        this.formDefObj = finalObj
+      } catch(e) {
+        console.error(e)
+      }
     }
   },
   render() {
@@ -353,6 +383,7 @@ const App = defineComponent({
       style={'height:100%'}
       placeholder="Please input Form Rows"
       v-model={this.formDef}
+      onInput={this.jsonChange}
     ></el-input></el-col>
     <el-col span={12}>{this.formNow()}</el-col>
   </el-row>)

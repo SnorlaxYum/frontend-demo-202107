@@ -8,6 +8,7 @@ import ElementPlus from 'element-plus'
 // These can be imported from other files
 import Home from './components/HelloWorld.vue'
 import Demo1 from './components/demo1.jsx'
+import Demo2 from './components/demo2.jsx'
 const About = { template: '<div>About</div>' }
 
 // 2. Define some routes
@@ -16,7 +17,8 @@ const About = { template: '<div>About</div>' }
 const routes = [
   { path: '/', component: Home },
   { path: '/about', component: About },
-  { path: '/demo1', component: Demo1 }
+  { path: '/demo1', component: Demo1 },
+  { path: '/demo2', component: Demo2 },
 ]
 
 // 3. Create the router instance and pass the `routes` option

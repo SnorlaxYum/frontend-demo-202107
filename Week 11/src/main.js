@@ -28,17 +28,38 @@ const app = createApp({
 app.use(router)
 app.mount('#app')
 
-function handleScroll(e) {
-  const {el, cb, distance} = e.target.nodeName === '#document' ? window['scrollElement'] : e.target['scrollElement']
+function getScrollOptions(el, instance) {
+
+}
+
+// idea from @element-plus
+function offsetFromRoot(child) {
+  let offset = 0
+  let elementNow = child
+  while (elementNow) {
+    offset += elementNow.offsetTop
+    elementNow = elementNow.offsetParent
+  }
+  return offset
+}
+
+// idea from @element-plus
+function getOffsetTopDistance(child, parent) {
+  return Math.abs(offsetFromRoot(child) - offsetFromRoot(parent))
+}
+
+// idea from @element-plus, nice......
+function handleScroll(el, cb) {
+  const {container, distance} = el['scrollElement']
+  const {scrollHeight, scrollTop, clientTop, clientHeight} = el
   let reachedTheEnd
 
-  if(e.target.nodeName === '#document') {
-    const {bottom} = el.getBoundingClientRect()
-    const {innerHeight} = window
-    reachedTheEnd = bottom-innerHeight <= distance
-  } else {
-    const {scrollHeight, scrollTop, clientHeight} = el
+  if(container === el) {
     reachedTheEnd = scrollHeight - Math.floor(scrollTop) - clientHeight <= distance
+  } else {
+    const {scrollTop: containerTop, clientHeight: containerHeight} = container
+    const offsetTopFromContainer = getOffsetTopDistance(el, container)
+    reachedTheEnd = containerTop + containerHeight >= offsetTopFromContainer + clientTop + scrollHeight - distance
   }
 
   if(reachedTheEnd) {
@@ -72,14 +93,15 @@ function getScrollContainer(el, isVertical) {
 
 app.directive('infinite-scroll', {
   mounted(el, binding, dir) {
-    // console.log(el, binding, dir)
+    console.log(binding)
     const distance = 100
     const container = getScrollContainer(el)
     // const containerEl = container === window ? window.documentElement : container
     const {value: cb} = binding
+    const onScroll = handleScroll.bind(null, el, cb)
     if(container) {
-      container['scrollElement'] = {cb, el, distance}
-      container.addEventListener('scroll', handleScroll)
+      el['scrollElement'] = {distance, container: container.toString() === "[object Window]" ? document.documentElement : container}
+      container.addEventListener('scroll', onScroll)
     }
   }
 })

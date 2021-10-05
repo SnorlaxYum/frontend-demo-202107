@@ -28,8 +28,38 @@ const app = createApp({
 app.use(router)
 app.mount('#app')
 
-function getScrollOptions(el, instance) {
+// defaults from @element-plus
+export const DEFAULT_DELAY = 200
+export const DEFAULT_DISTANCE = 0
 
+// attributes from @element-plus
+const attributes = {
+  delay: {
+    type: Number,
+    default: DEFAULT_DELAY,
+  },
+  distance: {
+    type: Number,
+    default: DEFAULT_DISTANCE,
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  immediate: {
+    type: Boolean,
+    default: true,
+  },
+}
+
+// idea from @element-plus
+function getScrollOptions(el) {
+  return Object.entries(attributes).reduce((accumulated, [key, {type, default: defaultValue}]) => {
+    const attrValue = el.getAttribute(`infinite-scroll-${key}`)
+    let valueNow = typeof attrValue === 'string' && type(el.getAttribute(`infinite-scroll-${key}`)) || defaultValue
+    accumulated[key] = valueNow
+    return accumulated
+  }, {})
 }
 
 // idea from @element-plus
@@ -50,9 +80,11 @@ function getOffsetTopDistance(child, parent) {
 
 // idea from @element-plus, nice......
 function handleScroll(el, cb) {
-  const {container, distance} = el['scrollElement']
+  const {container, distance, disabled, immediate} = el['scrollElement']
   const {scrollHeight, scrollTop, clientTop, clientHeight} = el
   let reachedTheEnd
+
+  // TODO: handle unused disabled and immediate
 
   if(container === el) {
     reachedTheEnd = scrollHeight - Math.floor(scrollTop) - clientHeight <= distance
@@ -91,16 +123,30 @@ function getScrollContainer(el, isVertical) {
   return parent
 }
 
+function throttle(fn, delay) {
+  let timer = null
+  return function() {
+    if(!timer) {
+      const context = this
+      const args = arguments
+      timer = setTimeout(() => {
+        fn.apply(context, args)
+        timer = null
+      }, delay)
+    }
+  }
+}
+
 app.directive('infinite-scroll', {
-  mounted(el, binding, dir) {
+  mounted(el, binding) {
     console.log(binding)
-    const distance = 100
     const container = getScrollContainer(el)
     // const containerEl = container === window ? window.documentElement : container
     const {value: cb} = binding
-    const onScroll = handleScroll.bind(null, el, cb)
+    const {delay, distance, disabled, immediate} = getScrollOptions(el)
+    const onScroll = throttle(handleScroll.bind(null, el, cb), delay)
     if(container) {
-      el['scrollElement'] = {distance, container: container.toString() === "[object Window]" ? document.documentElement : container}
+      el['scrollElement'] = {distance, disabled, immediate, container: container.toString() === "[object Window]" ? document.documentElement : container}
       container.addEventListener('scroll', onScroll)
     }
   }

@@ -4,9 +4,14 @@ import { ref } from 'vue'
 const count = ref(100)
 const count2 = ref(100)
 const count3 = ref(100)
+const dia = ref(false)
 
 const load = () => {
-  count.value += 2
+  dia.value = true
+  setTimeout(() => {
+    count.value += 2
+    dia.value = false
+  }, 2000)
 }
 const load2 = () => {
   count2.value += 2
@@ -17,8 +22,9 @@ const load3 = () => {
 </script>
 
 <template>
-  <ul v-infinite-scroll="load" infinite-scroll-disabled="false" class="infinite-list" style="overflow: auto; height: 500px">
+  <ul v-infinite-scroll="load" infinite-scroll-disabled="dia" class="infinite-list" style="overflow: auto; height: 500px">
     <li v-for="i in count" :key="i" class="infinite-list-item">{{ i }}</li>
+    <li v-show="dia">Loading....</li>
   </ul>
   <div style="height: 500px; overflow: auto">
     <ul v-infinite-scroll="load2" class="infinite-list">

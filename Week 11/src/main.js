@@ -31,6 +31,8 @@ app.mount('#app')
 // defaults from @element-plus
 export const DEFAULT_DELAY = 200
 export const DEFAULT_DISTANCE = 0
+export const CHECK_INTERVAL = 50
+
 
 // attributes from @element-plus
 const attributes = {
@@ -87,12 +89,11 @@ function getOffsetTopDistance(child, parent) {
 
 // idea from @element-plus, nice......
 function handleScroll(el, cb) {
-  const {container, distance, instance, immediate} = el['scrollElement']
+  const {container, distance, instance} = el['scrollElement']
   const { disabled } = getScrollOptions(el, instance)
   const {scrollHeight, scrollTop, clientTop, clientHeight} = el
   let reachedTheEnd
 
-  // TODO: handle unused
   if(disabled) {
     return
   }
@@ -108,7 +109,7 @@ function handleScroll(el, cb) {
   }
 
   if(reachedTheEnd) {
-    cb()
+    cb.call(instance)
   }
 }
 
@@ -150,6 +151,23 @@ function throttle(fn, delay) {
   }
 }
 
+// idea from @element-plus, nice......
+function makeFullClientHeight(el, cb) {
+  const {instance, container, observer} = el['scrollElement']
+  const {disabled} = getScrollOptions(el, instance)
+
+  if(disabled) {
+    return
+  }
+
+  if(container.clientHeight >= container.scrollHeight) {
+    cb.call(instance)
+  } else if(observer) {
+    observer.disconnect()
+    el['scrollElement'].observer = null
+  }
+}
+
 app.directive('infinite-scroll', {
   mounted(el, binding) {
     const container = getScrollContainer(el)
@@ -159,6 +177,17 @@ app.directive('infinite-scroll', {
     const onScroll = throttle(handleScroll.bind(null, el, cb), delay)
     if(container) {
       el['scrollElement'] = {distance, immediate, container: container.toString() === "[object Window]" ? document.documentElement : container, instance}
+      
+      // idea from @element-plus, nice......
+      if(immediate) {
+        let observer = new MutationObserver(
+          throttle(makeFullClientHeight.bind(null, el, cb), CHECK_INTERVAL)
+        )
+        el['scrollElement'].observer = observer
+        observer.observe(el, {childList: true, subtree: true})
+        makeFullClientHeight(el, cb)
+      }
+
       container.addEventListener('scroll', onScroll)
     }
   }

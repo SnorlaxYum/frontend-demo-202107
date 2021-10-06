@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const count = ref(100)
+const count = ref(2)
 const count2 = ref(100)
 const count3 = ref(100)
 const dia = ref(false)
@@ -9,7 +9,7 @@ const dia = ref(false)
 const load = () => {
   dia.value = true
   setTimeout(() => {
-    count.value += 2
+    count.value += 10
     dia.value = false
   }, 2000)
 }

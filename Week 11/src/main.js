@@ -30,7 +30,7 @@ app.mount('#app')
 
 // defaults from @element-plus
 export const DEFAULT_DELAY = 200
-export const DEFAULT_DISTANCE = 5
+export const DEFAULT_DISTANCE = 0
 
 // attributes from @element-plus
 const attributes = {
@@ -92,17 +92,19 @@ function handleScroll(el, cb) {
   const {scrollHeight, scrollTop, clientTop, clientHeight} = el
   let reachedTheEnd
 
-  // TODO: handle unused immediate
+  // TODO: handle unused
   if(disabled) {
     return
   }
 
   if(container === el) {
-    reachedTheEnd = scrollHeight - Math.floor(scrollTop) - clientHeight <= distance
+    // scrollHeight is an integer while scrollTop is not, in case of situations mentioned below, I use ceil as well
+    reachedTheEnd = scrollHeight - Math.ceil(scrollTop) - clientHeight <= distance
   } else {
     const {scrollTop: containerTop, clientHeight: containerHeight} = container
     const offsetTopFromContainer = getOffsetTopDistance(el, container)
-    reachedTheEnd = containerTop + containerHeight >= offsetTopFromContainer + clientTop + scrollHeight - distance
+    // again, scrollTop is not an integer, also there are cases like 3071.45458984375 on the left and 3072 on the right, so ceil is better here
+    reachedTheEnd = Math.ceil(containerTop) + containerHeight >= offsetTopFromContainer + clientTop + scrollHeight - distance
   }
 
   if(reachedTheEnd) {

@@ -123,9 +123,18 @@ function throttle(fn, delay) {
   }
 }
 
+// idea from @element-plus, nice!
+function destroyObserver(el) {
+  const {observer} = el[DATA_ANCHOR]
+  if(observer) {
+    observer.disconnect()
+    el[DATA_ANCHOR].observer = null
+  }
+}
+
 // idea from @element-plus, nice......
 function makeFullClientHeight(el, cb) {
-  const {instance, container, observer} = el[DATA_ANCHOR]
+  const {instance, container} = el[DATA_ANCHOR]
   const {disabled} = getScrollOptions(el, instance)
 
   if(disabled) {
@@ -134,9 +143,8 @@ function makeFullClientHeight(el, cb) {
 
   if(container.clientHeight >= container.scrollHeight) {
     cb.call(instance)
-  } else if(observer) {
-    observer.disconnect()
-    el[DATA_ANCHOR].observer = null
+  } else {
+    destroyObserver(el)
   }
 }
 
@@ -148,7 +156,7 @@ const InfiniteScroll = {
     const {delay, distance, immediate} = getScrollOptions(el, instance)
     const onScroll = throttle(handleScroll.bind(null, el, cb), delay)
     if(container) {
-      el[DATA_ANCHOR] = {distance, immediate, container: container.toString() === "[object Window]" ? document.documentElement : container, instance}
+      el[DATA_ANCHOR] = {distance, onScroll, immediate, container: container.toString() === "[object Window]" ? document.documentElement : container, instance}
       
       // idea from @element-plus, nice......
       if(immediate) {
@@ -162,6 +170,12 @@ const InfiniteScroll = {
 
       container.addEventListener('scroll', onScroll)
     }
+  },
+  unmounted(el) {
+    const {onScroll, container} = el[DATA_ANCHOR]
+    container.removeEventListener('scroll', onScroll)
+    // destroy listeners
+    destroyObserver(el)
   }
 }
 

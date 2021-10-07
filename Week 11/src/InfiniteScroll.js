@@ -61,10 +61,18 @@ function getOffsetTopDistance(child, parent) {
 
 // idea from @element-plus, nice......
 function handleScroll(el, cb) {
-  const {container, distance, instance} = el[DATA_ANCHOR]
+  const {container, distance, instance, lastScrollTop} = el[DATA_ANCHOR]
   const { disabled } = getScrollOptions(el, instance)
-  const {scrollHeight, scrollTop, clientTop, clientHeight} = el
+  const {scrollHeight, scrollTop, clientHeight} = container
   let reachedTheEnd
+
+  // compare to last container axis to see if it is needed to perform the check
+  if(scrollTop - lastScrollTop <= 0) {
+    return
+  }
+
+  // better record container axis, so if it is not in a lower scroll position, it will not check. nice idea from @element-plus
+  el[DATA_ANCHOR].lastScrollTop = scrollTop
 
   if(disabled) {
     return
@@ -74,10 +82,10 @@ function handleScroll(el, cb) {
     // scrollHeight is an integer while scrollTop is not, in case of situations mentioned below, I use ceil as well
     reachedTheEnd = scrollHeight - Math.ceil(scrollTop) - clientHeight <= distance
   } else {
-    const {scrollTop: containerTop, clientHeight: containerHeight} = container
+    const {clientTop: elTopBorder, scrollHeight: elHeight} = el
     const offsetTopFromContainer = getOffsetTopDistance(el, container)
     // again, scrollTop is not an integer, also there are cases like 3071.45458984375 on the left and 3072 on the right, so ceil is better here
-    reachedTheEnd = Math.ceil(containerTop) + containerHeight >= offsetTopFromContainer + clientTop + scrollHeight - distance
+    reachedTheEnd = Math.ceil(scrollTop) + clientHeight >= offsetTopFromContainer + elTopBorder + elHeight - distance
   }
 
   if(reachedTheEnd) {
@@ -156,7 +164,14 @@ const InfiniteScroll = {
     const {delay, distance, immediate} = getScrollOptions(el, instance)
     const onScroll = throttle(handleScroll.bind(null, el, cb), delay)
     if(container) {
-      el[DATA_ANCHOR] = {distance, onScroll, immediate, container: container.toString() === "[object Window]" ? document.documentElement : container, instance}
+      el[DATA_ANCHOR] = {
+        distance,
+        onScroll,
+        immediate,
+        lastScrollTop: container.scrollTop,
+        container: container.toString() === "[object Window]" ? document.documentElement : container,
+        instance
+      }
       
       // idea from @element-plus, nice......
       if(immediate) {
